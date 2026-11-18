@@ -1,0 +1,36 @@
+name: Despliegue Continuo de Popshop a AWS CloudFront y S3
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v7
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Construir la aplicación
+        run: npm run build
+
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::940603399822:role/github-actions-role-s3-cf
+          aws-region: us-east-1
+      
+      - name: Desplegar a S3
+        run: aws s3 sync ./dist/ s3://amz-s3-cf-actions-static-website-dev --delete
+
+      - name: Invalidar la caché de CloudFront
+        run: aws cloudfront create-invalidation --distribution-id E5XI4NDI5IY3G --paths "/*"
